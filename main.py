@@ -1,17 +1,14 @@
-from flask import Flask
-from threading import Thread
 import telebot
 from telebot import types
 import os
 
-# ==== إعدادات البوت ====
 TOKEN = "7738014448:AAGkfASyo_RWbzF4r7ug1D57E_YXfNbDKas"
 ADMIN_ID = 6901191600
 CHANNEL_LINK = "https://t.me/CanCer313"
 
 bot = telebot.TeleBot(TOKEN)
 
-# ==== ملفات المستخدمين ====
+# فایل‌ها
 BLOCKED_USERS_FILE = "blocked_users.txt"
 MESSAGED_USERS_FILE = "messaged_users.txt"
 REJECTED_USERS_FILE = "rejected_users.txt"
@@ -33,7 +30,6 @@ messaged_users = load_list(MESSAGED_USERS_FILE)
 rejected_users = load_list(REJECTED_USERS_FILE)
 all_users = load_list(ALL_USERS_FILE)
 
-# ==== تعاريف البوت ====
 @bot.message_handler(commands=["start"])
 def start_handler(message):
     user_id = message.from_user.id
@@ -172,6 +168,7 @@ def send_reply(message, target_id):
     except:
         bot.send_message(ADMIN_ID, "❌ خطا در ارسال پاسخ.")
 
+# منوی ادمین
 def show_admin_menu(message):
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -238,7 +235,7 @@ def ask_target_user(call):
 def get_target_user_id(message):
     try:
         user_id = int(message.text.strip())
-        message.chat.id = user_id
+        message.chat.id = user_id  # ذخیره موقتی
         bot.send_message(ADMIN_ID, "✉️ پیام را وارد کنید:")
         bot.register_next_step_handler(message, send_direct_message, user_id)
     except:
@@ -251,20 +248,14 @@ def send_direct_message(message, user_id):
     except:
         bot.send_message(ADMIN_ID, "❌ خطا در ارسال پیام.")
 
-# ==== إبقاء البوت حيًّا (Flask server) ====
-app = Flask(__name__)
+# ✅ بررسی پیام‌های غیرمجاز کاربران
+@bot.message_handler(func=lambda message: True)
+def fallback_handler(message):
+    user_id = message.from_user.id
+    if user_id == ADMIN_ID:
+        return
+    if user_id in messaged_users:
+        return
+    bot.send_message(user_id, "⚠️ لطفا در صورت پاسخ روی /start بزنيد و سپس روي دكمه \"CanCer313 پيام ميفرستم\" كلیک کنید")
 
-@app.route('/')
-def home():
-    return "Bot is running!"
-
-def run():
-    app.run(host="0.0.0.0", port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-
-# ==== تشغيل البوت ====
-keep_alive()
 bot.infinity_polling()
