@@ -5,7 +5,7 @@ from telebot import types
 import os
 
 # ==== إعدادات البوت ====
-TOKEN = "توكن_البوت_هنا"
+TOKEN = "7738014448:AAGkfASyo_RWbzF4r7ug1D57E_YXfNbDKas"
 ADMIN_ID = 6901191600
 CHANNEL_LINK = "https://t.me/CanCer313"
 
