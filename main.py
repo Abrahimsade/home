@@ -5,12 +5,12 @@ import json
 from datetime import datetime
 
 TOKEN = "7738014448:AAGkfASyo_RWbzF4r7ug1D57E_YXfNbDKas"
-ADMIN_ID = 6901191600  # ضع آيدي الأدمن
+ADMIN_ID = 6901191600  # آیدی ادمین
 CHANNEL_LINK = "https://t.me/CanCer313"
 
 bot = telebot.TeleBot(TOKEN)
 
-# ملفات
+# فایل‌ها
 BLOCKED_USERS_FILE = "blocked_users.txt"
 MESSAGED_USERS_FILE = "messaged_users.txt"
 REJECTED_USERS_FILE = "rejected_users.txt"
@@ -144,8 +144,10 @@ def delete_pending_message(user_id):
 def send_to_admin(message):
     user_id = message.from_user.id
     text = f"📩 پیام جدید:\n\n{message.text}\n\n" \
+           f"👤 نام: {message.from_user.first_name}\n" \
            f"👤 یوزرنیم: @{message.from_user.username or 'ندارد'}\n" \
-           f"🆔 آیدی: `{user_id}`"
+           f"🆔 آیدی: `{user_id}`\n" \
+           f"🕓 زمان: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -226,17 +228,17 @@ def show_pending(call):
         bot.send_message(ADMIN_ID, "⛔ هیچ تیکتی در انتظار نیست.")
         return
 
-    text = "📬 پیام‌های در انتظار:\n"
     for uid, info in pending_messages.items():
-        text += (
-            f"\n👤 نام: {info['name']}\n"
+        text = (
+            f"👤 نام: {info['name']}\n"
             f"📛 یوزرنیم: {info['username']}\n"
             f"🆔 آیدی: {uid}\n"
             f"📝 پیام: {info['message']}\n"
             f"🕓 زمان: {info['time']}\n"
-            f"{'-'*35}"
         )
-    bot.send_message(ADMIN_ID, text)
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("✉️ پاسخ", callback_data=f"reply_{uid}"))
+        bot.send_message(ADMIN_ID, text, reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data == "show_blocked")
 def show_blocked_users(call):
@@ -317,6 +319,6 @@ def fallback_handler(message):
         return
     if user_id in messaged_users:
         return
-    bot.send_message(user_id, "⚠️ لطفا در صورت پاسخ روی /start بزنيد و سپس روي دكمه \"CanCer313 پيام ميفرستم\" كلیک کنید")
+    bot.send_message(user_id, "⚠️ لطفا در صورت پاسخ روی /start بزنيد و سپس روي دكمه \"CanCer313 پیام می‌فرستم\" کلیک کنید")
 
 bot.infinity_polling()
