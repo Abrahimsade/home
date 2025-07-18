@@ -1,18 +1,21 @@
 import telebot
 from telebot import types
 import os
+import json
+from datetime import datetime
 
 TOKEN = "7738014448:AAGkfASyo_RWbzF4r7ug1D57E_YXfNbDKas"
-ADMIN_ID = 6901191600
+ADMIN_ID = 6901191600  # ضع آيدي الأدمن
 CHANNEL_LINK = "https://t.me/CanCer313"
 
 bot = telebot.TeleBot(TOKEN)
 
-# فایل‌ها
+# ملفات
 BLOCKED_USERS_FILE = "blocked_users.txt"
 MESSAGED_USERS_FILE = "messaged_users.txt"
 REJECTED_USERS_FILE = "rejected_users.txt"
 ALL_USERS_FILE = "all_users.txt"
+PENDING_MESSAGES_FILE = "pending_messages.json"
 
 def load_list(filename):
     if not os.path.exists(filename):
@@ -25,10 +28,21 @@ def save_list(filename, data):
         for item in data:
             f.write(str(item) + "\n")
 
+def load_pending_messages():
+    if not os.path.exists(PENDING_MESSAGES_FILE):
+        return {}
+    with open(PENDING_MESSAGES_FILE, "r") as f:
+        return json.load(f)
+
+def save_pending_messages(data):
+    with open(PENDING_MESSAGES_FILE, "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
 blocked_users = load_list(BLOCKED_USERS_FILE)
 messaged_users = load_list(MESSAGED_USERS_FILE)
 rejected_users = load_list(REJECTED_USERS_FILE)
 all_users = load_list(ALL_USERS_FILE)
+pending_messages = load_pending_messages()
 
 @bot.message_handler(commands=["start"])
 def start_handler(message):
@@ -94,6 +108,7 @@ def handle_first_message(message):
 
     messaged_users.append(user_id)
     save_list(MESSAGED_USERS_FILE, messaged_users)
+    save_pending_message(message)
     send_to_admin(message)
 
 def forward_second_chance(message):
@@ -103,10 +118,28 @@ def forward_second_chance(message):
         return
 
     messaged_users.append(user_id)
-    rejected_users.remove(user_id)
+    if user_id in rejected_users:
+        rejected_users.remove(user_id)
+        save_list(REJECTED_USERS_FILE, rejected_users)
+
     save_list(MESSAGED_USERS_FILE, messaged_users)
-    save_list(REJECTED_USERS_FILE, rejected_users)
+    save_pending_message(message)
     send_to_admin(message)
+
+def save_pending_message(message):
+    user_id = str(message.from_user.id)
+    pending_messages[user_id] = {
+        "name": message.from_user.first_name,
+        "username": f"@{message.from_user.username}" if message.from_user.username else "ندارد",
+        "message": message.text,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    save_pending_messages(pending_messages)
+
+def delete_pending_message(user_id):
+    if str(user_id) in pending_messages:
+        del pending_messages[str(user_id)]
+        save_pending_messages(pending_messages)
 
 def send_to_admin(message):
     user_id = message.from_user.id
@@ -135,6 +168,7 @@ def handle_admin_response(call):
         if user_id not in blocked_users:
             blocked_users.append(user_id)
             save_list(BLOCKED_USERS_FILE, blocked_users)
+        delete_pending_message(user_id)
         bot.send_message(ADMIN_ID, f"✅ کاربر {user_id} مسدود شد.")
         try:
             bot.send_message(user_id, "❌ شما توسط تیم CanCer313 مسدود شده‌اید.")
@@ -149,12 +183,13 @@ def handle_admin_response(call):
             messaged_users.remove(user_id)
             save_list(MESSAGED_USERS_FILE, messaged_users)
 
-        bot.send_message(ADMIN_ID, f"✖️ پیام کاربر {user_id} رد شد.")
+        delete_pending_message(user_id)
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("به تیم CanCer313 پیام می‌فرستم", callback_data="send_msg"))
         try:
-            markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton("به تیم CanCer313 پیام می‌فرستم", callback_data="send_msg"))
             bot.send_message(user_id, "✖️ پیام شما توسط تیم CanCer313 رد شد.\nمی‌توانید یک پیام جدید ارسال کنید.", reply_markup=markup)
         except: pass
+        bot.send_message(ADMIN_ID, f"✖️ پیام کاربر {user_id} رد شد.")
 
 def send_reply(message, target_id):
     try:
@@ -165,10 +200,10 @@ def send_reply(message, target_id):
         if target_id in messaged_users:
             messaged_users.remove(target_id)
             save_list(MESSAGED_USERS_FILE, messaged_users)
+        delete_pending_message(target_id)
     except:
         bot.send_message(ADMIN_ID, "❌ خطا در ارسال پاسخ.")
 
-# منوی ادمین
 def show_admin_menu(message):
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -180,14 +215,41 @@ def show_admin_menu(message):
         types.InlineKeyboardButton("📢 ارسال پیام همگانی", callback_data="broadcast"),
         types.InlineKeyboardButton("📨 ارسال به کاربر خاص", callback_data="send_to_user")
     )
+    markup.add(
+        types.InlineKeyboardButton("🎫 تیکت‌ها", callback_data="show_pending")
+    )
     bot.send_message(ADMIN_ID, "پنل مدیریت:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == "show_pending")
+def show_pending(call):
+    if not pending_messages:
+        bot.send_message(ADMIN_ID, "⛔ هیچ تیکتی در انتظار نیست.")
+        return
+
+    text = "📬 پیام‌های در انتظار:\n"
+    for uid, info in pending_messages.items():
+        text += (
+            f"\n👤 نام: {info['name']}\n"
+            f"📛 یوزرنیم: {info['username']}\n"
+            f"🆔 آیدی: {uid}\n"
+            f"📝 پیام: {info['message']}\n"
+            f"🕓 زمان: {info['time']}\n"
+            f"{'-'*35}"
+        )
+    bot.send_message(ADMIN_ID, text)
 
 @bot.callback_query_handler(func=lambda call: call.data == "show_blocked")
 def show_blocked_users(call):
     if not blocked_users:
         bot.send_message(ADMIN_ID, "❕ هیچ کاربری مسدود نیست.")
     else:
-        text = "📛 لیست کاربران مسدود:\n" + "\n".join(str(u) for u in blocked_users)
+        text = "📛 لیست کاربران مسدود:\n"
+        for uid in blocked_users:
+            try:
+                user = bot.get_chat(uid)
+                text += f"\n{user.first_name}\n@{user.username or 'ندارد'}\n{uid}\n{'-'*35}"
+            except:
+                text += f"\nنامشخص\n@نامشخص\n{uid}\n{'-'*35}"
         bot.send_message(ADMIN_ID, text)
 
 @bot.callback_query_handler(func=lambda call: call.data == "show_user_count")
@@ -235,7 +297,7 @@ def ask_target_user(call):
 def get_target_user_id(message):
     try:
         user_id = int(message.text.strip())
-        message.chat.id = user_id  # ذخیره موقتی
+        message.chat.id = user_id
         bot.send_message(ADMIN_ID, "✉️ پیام را وارد کنید:")
         bot.register_next_step_handler(message, send_direct_message, user_id)
     except:
@@ -248,7 +310,6 @@ def send_direct_message(message, user_id):
     except:
         bot.send_message(ADMIN_ID, "❌ خطا در ارسال پیام.")
 
-# ✅ بررسی پیام‌های غیرمجاز کاربران
 @bot.message_handler(func=lambda message: True)
 def fallback_handler(message):
     user_id = message.from_user.id
