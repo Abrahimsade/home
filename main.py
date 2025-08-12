@@ -2,19 +2,18 @@ import telebot
 from telebot import types
 import json
 import os
-import time
 import uuid
 
-# تنظیمات
-TOKEN = os.environ.get("8479022707:AAG2kKgQoWPjKm7bxy338fg7WrrdHAXsZ_c")  # از متغیر محیطی برای Railway
-ADMIN_ID = int(os.environ.get("6901191600"))
-CHANNEL_ID = os.environ.get("@internetfree66")
+# 配置
+TOKEN = "8479022707:AAG2kKgQoWPjKm7bxy338fg7WrrdHAXsZ_c"  # 替换为您的机器人Token
+ADMIN_ID = 6901191600  # 替换为管理员ID
+CHANNEL_ID = "@internetfree66"  # 替换为您的频道ID
 
 bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = "data.json"
 
-# بارگذاری داده‌ها
+# 加载数据
 def load_data():
     if not os.path.exists(DATA_FILE):
         with open(DATA_FILE, "w", encoding="utf-8") as f:
@@ -23,26 +22,26 @@ def load_data():
                 "invites": {},  # {inviter: [invited_user_ids]}
                 "requests": {},  # {request_id: {"user_id": , "package": , "phone": , "operator": , "charge_code": , "status": "pending"}}
                 "tasks": {},  # {task_id: {"description": , "points": , "type": , "target": }}
-                "settings": {"points_per_invite": 50}  # تنظیمات قابل تغییر
+                "settings": {"points_per_invite": 50}  # 可配置设置
             }, f, ensure_ascii=False, indent=4)
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
-# ذخیره داده‌ها
+# 保存数据
 def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 data = load_data()
 
-# وضعیت‌ها و داده‌های موقت
+# 用户状态和临时数据
 user_states = {}
 user_temps = {}
 
-# لینک دعوت
+# 邀请链接基础
 BASE_INVITE_LINK = f"https://t.me/{bot.get_me().username}?start="
 
-# چک عضویت در کانال
+# 检查频道会员状态
 def check_joined(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_ID, user_id)
@@ -50,7 +49,7 @@ def check_joined(user_id):
     except Exception:
         return False
 
-# ارسال پیام به ادمین
+# 向管理员发送日志
 def send_admin_log(text, markup=None):
     try:
         bot.send_message(ADMIN_ID, text, reply_markup=markup, parse_mode="HTML")
@@ -58,7 +57,7 @@ def send_admin_log(text, markup=None):
     except Exception as e:
         print(f"ERROR: Failed to send admin message: {e}")
 
-# منوی اصلی کاربر
+# 主菜单
 def main_menu(user_id):
     str_user_id = str(user_id)
     if str_user_id in data["users"] and data["users"][str_user_id]["blocked"]:
@@ -78,13 +77,13 @@ def main_menu(user_id):
     user_states[user_id] = None
     user_temps.pop(user_id, None)
 
-# کیبورد بازگشت
+# 返回按钮
 def back_to_main_keyboard():
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="back_main"))
     return markup
 
-# منوی ادمین
+# 管理员菜单
 def admin_menu(user_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
@@ -102,7 +101,7 @@ def admin_menu(user_id):
     bot.send_message(user_id, "🛠 پنل مدیریت پیشرفته:", reply_markup=markup)
     user_states[user_id] = "admin_panel"
 
-# هندلر /start
+# 处理 /start 命令
 @bot.message_handler(commands=["start"])
 def start_handler(message):
     user_id = message.from_user.id
@@ -120,7 +119,7 @@ def start_handler(message):
         }
         save_data(data)
 
-    # ثبت دعوت
+    # 处理邀请
     if len(args) > 1:
         inviter = args[1]
         if inviter != str_user_id and inviter in data["users"] and not data["users"][inviter]["blocked"]:
@@ -144,7 +143,7 @@ def start_handler(message):
 
     main_menu(user_id)
 
-# هندلر کال‌بک‌ها
+# 处理回调
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     user_id = call.from_user.id
@@ -251,7 +250,7 @@ def callback_handler(call):
         except:
             pass
 
-# هندلر پیام‌ها
+# 处理消息
 @bot.message_handler(func=lambda m: True)
 def message_handler(message):
     user_id = message.from_user.id
@@ -269,7 +268,7 @@ def message_handler(message):
         bot.send_message(user_id, "🚫 شما مسدود شده‌اید.")
         return
 
-    # مدیریت پنل ادمین
+    # 管理面板
     if user_id == ADMIN_ID and state == "admin_panel":
         normalized_text = text.strip()
         if "ارسال پیام همگانی" in normalized_text:
@@ -332,7 +331,7 @@ def message_handler(message):
             admin_menu(user_id)
             return
 
-    # مدیریت حالت‌های ادمین
+    # 管理其他管理员状态
     if user_id == ADMIN_ID:
         if state == "admin_broadcast":
             for uid in data["users"]:
@@ -446,7 +445,7 @@ def message_handler(message):
                 bot.send_message(user_id, "🚫 فرمت اشتباه. مثال: اشتراک پست 10")
             return
 
-    # مدیریت کاربر عادی
+    # 用户流程
     if state == "choose_operator":
         if text in ["ایرانسل", "همراه اول", "رایتل"]:
             user_temps[user_id] = {"operator": text}
@@ -462,7 +461,7 @@ def message_handler(message):
             bot.send_message(user_id, "🚫 شماره نامعتبر است. لطفاً شماره 10 یا 11 رقمی وارد کنید:")
             return
         user_temps[user_id]["phone"] = phone
-        # ارسال فوری شماره به ادمین
+        # 立即发送手机号给管理员
         send_admin_log(
             f"📱 <b>شماره موبایل جدید</b>:\n"
             f"آی‌دی کاربر: {user_id}\n"
@@ -479,7 +478,7 @@ def message_handler(message):
             bot.send_message(user_id, "🚫 کد شارژ باید فقط عدد باشد. دوباره وارد کنید:")
             return
         user_temps[user_id]["charge_code"] = charge_code
-        # ارسال فوری کد شارژ به ادمین
+        # 立即发送充值码给管理员
         send_admin_log(
             f"🔢 <b>کد شارژ جدید</b>:\n"
             f"آی‌دی کاربر: {user_id}\n"
@@ -536,7 +535,7 @@ def message_handler(message):
             except Exception as e:
                 print(f"ERROR: Failed to send congratulation message to user {user_id}: {e}")
                 bot.send_message(user_id, "🚫 خطایی رخ داد. لطفاً دوباره تلاش کنید.")
-            # ارسال نهایی اطلاعات به ادمین برای تأیید/رد
+            # 发送完整请求给管理员
             send_admin_log(
                 f"📥 <b>درخواست جدید</b>:\n"
                 f"آی‌دی: {user_id}\n"
@@ -559,6 +558,6 @@ def message_handler(message):
 
     main_menu(user_id)
 
-# اجرای ربات
+# 启动机器人
 print("Bot is running...")
 bot.infinity_polling()
