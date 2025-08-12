@@ -1,21 +1,12 @@
-import os
-import subprocess
-
-# نصب کتابخانه‌ها اگر نصب نبودن
-try:
-    import telebot
-except ImportError:
-    print("DEBUG: Installing pyTelegramBotAPI...")
-    subprocess.check_call(["pip", "install", "pyTelegramBotAPI"])
-    import telebot  # دوباره ایمپورت بعد از نصب
-
+import telebot
 from telebot import types
 import json
+import os
 import time
 import uuid
 
 # تنظیمات
-TOKEN = os.environ.get("8479022707:AAG2kKgQoWPjKm7bxy338fg7WrrdHAXsZ_c")  # برای Railway، از environment variables استفاده کن
+TOKEN = os.environ.get("8479022707:AAG2kKgQoWPjKm7bxy338fg7WrrdHAXsZ_c")  # از متغیر محیطی برای Railway
 ADMIN_ID = int(os.environ.get("6901191600"))
 CHANNEL_ID = os.environ.get("@internetfree66")
 
