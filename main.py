@@ -6,23 +6,28 @@ import time
 import uuid
 import sys
 
-# تنظیمات
-TOKEN = os.environ.get("8479022707:AAG2kKgQoWPjKm7bxy338fg7WrrdHAXsZ_c")
-ADMIN_ID = os.environ.get("6901191600")
-CHANNEL_ID = os.environ.get("@internetfree66")
+# تنظیمات پیش‌فرض (هاردکد شده مثل کد ارسالی)
+DEFAULT_TOKEN = "8479022707:AAG2kKgQoWPjKm7bxy338fg7WrrdHAXsZ_c"  # توکن پیش‌فرض
+DEFAULT_ADMIN_ID = 6901191600  # آی‌دی ادمین پیش‌فرض (به‌صورت عدد)
+DEFAULT_CHANNEL_ID = "@internetfree66"  # کانال پیش‌فرض
 
-# بررسی متغیرهای محیطی
+# گرفتن متغیرها از محیط یا استفاده از پیش‌فرض
+TOKEN = os.environ.get("TOKEN", DEFAULT_TOKEN)
+ADMIN_ID_RAW = os.environ.get("ADMIN_ID", str(DEFAULT_ADMIN_ID))
+CHANNEL_ID = os.environ.get("CHANNEL_ID", DEFAULT_CHANNEL_ID)
+
+# بررسی متغیرها
 if not TOKEN:
-    print("ERROR: TOKEN is not set in environment variables.")
+    print("ERROR: No valid TOKEN provided (neither environment variable nor default).")
     sys.exit(1)
-if not ADMIN_ID or not ADMIN_ID.isdigit():
-    print("ERROR: ADMIN_ID is not set or is not a valid number.")
+if not ADMIN_ID_RAW or not ADMIN_ID_RAW.isdigit():
+    print(f"ERROR: ADMIN_ID is not a valid number. Got: {ADMIN_ID_RAW}")
     sys.exit(1)
 if not CHANNEL_ID:
-    print("ERROR: CHANNEL_ID is not set in environment variables.")
+    print("ERROR: No valid CHANNEL_ID provided (neither environment variable nor default).")
     sys.exit(1)
 
-ADMIN_ID = int(ADMIN_ID)  # تبدیل به عدد بعد از بررسی
+ADMIN_ID = int(ADMIN_ID_RAW)  # تبدیل به عدد
 bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = "data.json"
@@ -60,7 +65,8 @@ def check_joined(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_ID, user_id)
         return member.status != "left"
-    except Exception:
+    except Exception as e:
+        print(f"ERROR: Failed to check channel membership for user {user_id}: {e}")
         return False
 
 # ارسال پیام به ادمین
