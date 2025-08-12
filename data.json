@@ -1,1 +1,20 @@
-
+{
+    "users": {
+        "6901191600": {
+            "points": 0,
+            "blocked": false,
+            "invites": 0
+        },
+        "7057452895": {
+            "points": 50,
+            "blocked": false,
+            "invites": 0
+        }
+    },
+    "invites": {},
+    "requests": {},
+    "tasks": {},
+    "settings": {
+        "points_per_invite": 50
+    }
+}
