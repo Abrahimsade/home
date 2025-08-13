@@ -6,15 +6,13 @@ import time
 import uuid
 import sys
 
-# تنظیمات پیش‌فرض (هاردکد شده مثل کد ارسالی)
+# تنظیمات پیش‌فرض (هاردکد شده)
 DEFAULT_TOKEN = "8479022707:AAG2kKgQoWPjKm7bxy338fg7WrrdHAXsZ_c"  # توکن پیش‌فرض
 DEFAULT_ADMIN_ID = 6901191600  # آی‌دی ادمین پیش‌فرض (به‌صورت عدد)
-DEFAULT_CHANNEL_ID = "@internetfree66"  # کانال پیش‌فرض
 
 # گرفتن متغیرها از محیط یا استفاده از پیش‌فرض
 TOKEN = os.environ.get("TOKEN", DEFAULT_TOKEN)
 ADMIN_ID_RAW = os.environ.get("ADMIN_ID", str(DEFAULT_ADMIN_ID))
-CHANNEL_ID = os.environ.get("CHANNEL_ID", DEFAULT_CHANNEL_ID)
 
 # بررسی متغیرها
 if not TOKEN:
@@ -22,9 +20,6 @@ if not TOKEN:
     sys.exit(1)
 if not ADMIN_ID_RAW or not ADMIN_ID_RAW.isdigit():
     print(f"ERROR: ADMIN_ID is not a valid number. Got: {ADMIN_ID_RAW}")
-    sys.exit(1)
-if not CHANNEL_ID:
-    print("ERROR: No valid CHANNEL_ID provided (neither environment variable nor default).")
     sys.exit(1)
 
 ADMIN_ID = int(ADMIN_ID_RAW)  # تبدیل به عدد
@@ -34,22 +29,56 @@ DATA_FILE = "data.json"
 
 # بارگذاری داده‌ها
 def load_data():
+    default_data = {
+        "users": {},
+        "invites": {},
+        "requests": {},
+        "tasks": {},
+        "settings": {"points_per_invite": 50}
+    }
     if not os.path.exists(DATA_FILE):
+        print(f"DEBUG: {DATA_FILE} does not exist. Creating with default data.")
         with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump({
-                "users": {},  # {user_id: {"points": 0, "blocked": False, "invites": 0}}
-                "invites": {},  # {inviter: [invited_user_ids]}
-                "requests": {},  # {request_id: {"user_id": , "package": , "phone": , "operator": , "charge_code": , "status": "pending"}}
-                "tasks": {},  # {task_id: {"description": , "points": , "type": , "target": }}
-                "settings": {"points_per_invite": 50}  # تنظیمات قابل تغییر
-            }, f, ensure_ascii=False, indent=4)
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+            json.dump(default_data, f, ensure_ascii=False, indent=4)
+        return default_data
+
+    # چک کردن اینکه فایل خالی نیست
+    if os.path.getsize(DATA_FILE) == 0:
+        print(f"DEBUG: {DATA_FILE} is empty. Initializing with default data.")
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(default_data, f, ensure_ascii=False, indent=4)
+        return default_data
+
+    # تلاش برای خواندن فایل
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            if not content:
+                print(f"DEBUG: {DATA_FILE} is empty or contains only whitespace. Initializing with default data.")
+                with open(DATA_FILE, "w", encoding="utf-8") as f:
+                    json.dump(default_data, f, ensure_ascii=False, indent=4)
+                return default_data
+            data = json.loads(content)
+            print(f"DEBUG: Successfully loaded {DATA_FILE}.")
+            return data
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse {DATA_FILE}. JSON error: {e}")
+        print(f"DEBUG: Rewriting {DATA_FILE} with default data.")
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(default_data, f, ensure_ascii=False, indent=4)
+        return default_data
+    except Exception as e:
+        print(f"ERROR: Failed to read {DATA_FILE}. General error: {e}")
+        return default_data
 
 # ذخیره داده‌ها
 def save_data(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        print(f"DEBUG: Successfully saved {DATA_FILE}.")
+    except Exception as e:
+        print(f"ERROR: Failed to save {DATA_FILE}: {e}")
 
 data = load_data()
 
@@ -59,15 +88,6 @@ user_temps = {}
 
 # لینک دعوت
 BASE_INVITE_LINK = f"https://t.me/{bot.get_me().username}?start="
-
-# چک عضویت در کانال
-def check_joined(user_id):
-    try:
-        member = bot.get_chat_member(CHANNEL_ID, user_id)
-        return member.status != "left"
-    except Exception as e:
-        print(f"ERROR: Failed to check channel membership for user {user_id}: {e}")
-        return False
 
 # ارسال پیام به ادمین
 def send_admin_log(text, markup=None):
@@ -126,9 +146,6 @@ def admin_menu(user_id):
 def start_handler(message):
     user_id = message.from_user.id
     args = message.text.split()
-    if not check_joined(user_id):
-        bot.send_message(user_id, f"لطفاً ابتدا در کانال {CHANNEL_ID} عضو شوید و سپس /start را بزنید.")
-        return
 
     str_user_id = str(user_id)
     if str_user_id not in data["users"]:
@@ -169,10 +186,6 @@ def callback_handler(call):
     user_id = call.from_user.id
     data_call = call.data
     str_user_id = str(user_id)
-
-    if not check_joined(user_id):
-        bot.answer_callback_query(call.id, f"لطفاً ابتدا در کانال {CHANNEL_ID} عضو شوید.")
-        return
 
     if str_user_id in data["users"] and data["users"][str_user_id]["blocked"]:
         bot.answer_callback_query(call.id, "🚫 شما مسدود شده‌اید.")
@@ -278,10 +291,6 @@ def message_handler(message):
     state = user_states.get(user_id, None)
 
     print(f"DEBUG: Received message from {user_id}: '{text}' in state: {state}")
-
-    if not check_joined(user_id):
-        bot.send_message(user_id, f"لطفاً ابتدا در کانال {CHANNEL_ID} عضو شوید.")
-        return
 
     str_user_id = str(user_id)
     if str_user_id in data["users"] and data["users"][str_user_id]["blocked"] and user_id != ADMIN_ID:
