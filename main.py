@@ -107,7 +107,7 @@ def main_menu(user_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
         types.InlineKeyboardButton("📡 دریافت بسته اینترنت", callback_data="get_internet"),
-        types.InlineKeyboardButton("📊 امتیازات من", callback_data="my_points"),
+        types.InlineKeyboardButton("👥 دعوت دوستان", callback_data="my_points"),
         types.InlineKeyboardButton("🏆 لیدربورد", callback_data="leaderboard"),
         types.InlineKeyboardButton("📋 وظایف روزانه", callback_data="daily_tasks"),
         types.InlineKeyboardButton("📜 قوانین", callback_data="rules"),
@@ -210,11 +210,13 @@ def callback_handler(call):
     elif data_call == "tutorial":
         bot.edit_message_text(
             "📚 <b>آموزش استفاده:</b>\n"
-            "1. اپراتور خود را انتخاب کنید.\n"
-            "2. شماره موبایل خود را وارد کنید.\n"
-            "3. کد شارژ را وارد کنید.\n"
-            "4. بسته اینترنت مورد نظر را انتخاب کنید.\n"
-            "5. منتظر تایید ادمین باشید.\n",
+            "1. گزینه "دعوت دوستان" را بزنید و لینک دعوت شما را به دوستان خود معرفی کنید.\n"
+            "2. بعد از گرفتن امتیاز روی "دریافت بسته اینترنت" بزنید.\n"
+            "3. اپراتور خود را انتخاب کنید.\n"
+            "4. شماره موبایل خود را وارد کنید.\n"
+            "5. کد را وارد کنید.\n"
+            "6. بسته اینترنت مورد نظر را انتخاب کنید.\n"
+            "7. منتظر تایید ادمین باشید.\n",
             user_id, call.message.message_id, reply_markup=back_to_main_keyboard(), parse_mode="HTML"
         )
     elif data_call == "my_points":
