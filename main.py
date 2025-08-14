@@ -519,7 +519,7 @@ def message_handler(message):
         markup.add(
             "بسته روزانه 1GB (50 امتیاز)",
             "بسته هفتگی 5GB (100 امتیاز)",
-            "بسته ماهانه 7GB (150 امتیاز)"
+            "ماهانه 10GB (150 امتیاز)"
         )
         bot.send_message(user_id, "📡 بسته مورد نظر را انتخاب کنید:", reply_markup=markup)
         user_states[user_id] = "choose_package"
