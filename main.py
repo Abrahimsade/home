@@ -519,7 +519,7 @@ def message_handler(message):
         markup.add(
             "بسته روزانه 1GB (50 امتیاز)",
             "بسته هفتگی 5GB (100 امتیاز)",
-            "ماهانه 10GB (150 امتیاز)"
+            "ماهانه 7GB (150 امتیاز)"
         )
         bot.send_message(user_id, "📡 بسته مورد نظر را انتخاب کنید:", reply_markup=markup)
         user_states[user_id] = "choose_package"
@@ -529,7 +529,7 @@ def message_handler(message):
         packages = {
             "بسته روزانه 1GB (50 امتیاز)": {"name": "روزانه 1GB", "points": 50},
             "بسته هفتگی 5GB (100 امتیاز)": {"name": "هفتگی 5GB", "points": 100},
-            "بسته ماهانه 10GB (150 امتیاز)": {"name": "ماهانه 10GB", "points": 150}
+            "بسته ماهانه 7GB (150 امتیاز)": {"name": "ماهانه 7GB", "points": 150}
         }
         if text in packages:
             package = packages[text]
